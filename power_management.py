@@ -21,11 +21,11 @@ ES_SYSTEM_REQUIRED = 0x00000001
 
 
 PBT_POWERSETTINGCHANGE = 0x8013
-GUID_CONSOLE_DISPLAY_STATE = '{6FE69556-704A-47A0-8F24-C28D936FDA47}'
-GUID_ACDC_POWER_SOURCE = '{5D3E9A59-E9D5-4B00-A6BD-FF34FF516548}'
-GUID_BATTERY_PERCENTAGE_REMAINING = '{A7AD8041-B45A-4CAE-87A3-EECBB468A9E1}'
-GUID_MONITOR_POWER_ON = '{02731015-4510-4526-99E6-E5A17EBD1AEA}'
-GUID_SYSTEM_AWAYMODE = '{98A7F580-01F7-48AA-9C0F-44352C29E5C0}'
+GUID_CONSOLE_DISPLAY_STATE = "{6FE69556-704A-47A0-8F24-C28D936FDA47}"
+GUID_ACDC_POWER_SOURCE = "{5D3E9A59-E9D5-4B00-A6BD-FF34FF516548}"
+GUID_BATTERY_PERCENTAGE_REMAINING = "{A7AD8041-B45A-4CAE-87A3-EECBB468A9E1}"
+GUID_MONITOR_POWER_ON = "{02731015-4510-4526-99E6-E5A17EBD1AEA}"
+GUID_SYSTEM_AWAYMODE = "{98A7F580-01F7-48AA-9C0F-44352C29E5C0}"
 
 
 SERVER_ADDRESS = "http://192.168.0.6:5000"
@@ -46,37 +46,56 @@ def send_message_to_server(message):
 def wndproc(hwnd, msg, wparam, lparam):
     if msg == win32con.WM_POWERBROADCAST:
         if wparam == win32con.PBT_APMPOWERSTATUSCHANGE:
-            print('Power status has changed')
+            print("Power status has changed")
         if wparam == win32con.PBT_APMRESUMEAUTOMATIC:
-            print('System resume')
+            print("System resume")
+            send_message_to_server("Wake from sleep (automatic)")
         if wparam == win32con.PBT_APMRESUMESUSPEND:
-            print('System resume by user input')
+            print("System resume by user input")
+            send_message_to_server("Wake from sleep (user-triggered)")
         if wparam == win32con.PBT_APMSUSPEND:
-            print('System suspend')
+            print("System suspend")
+            send_message_to_server("Go to sleep")
         if wparam == PBT_POWERSETTINGCHANGE:
-            print('Power setting changed...')
+            print("Power setting changed...")
             settings = cast(lparam, POINTER(POWERBROADCAST_SETTING)).contents
             power_setting = str(settings.PowerSetting)
             data_length = settings.DataLength
             data = settings.Data
             if power_setting == GUID_CONSOLE_DISPLAY_STATE:
-                if data == 0: print('Display off')
-                if data == 1: print('Display on')
-                if data == 2: print('Display dimmed')
+                if data == 0:
+                    print("Display off")
+                    send_message_to_server("Display off")
+                if data == 1:
+                    print("Display on")
+                    send_message_to_server("Display on")
+                if data == 2:
+                    print("Display dimmed")
             elif power_setting == GUID_ACDC_POWER_SOURCE:
-                if data == 0: print('AC power')
-                if data == 1: print('Battery power')
-                if data == 2: print('Short term power')
+                if data == 0:
+                    print("AC power")
+                if data == 1:
+                    print("Battery power")
+                if data == 2:
+                    print("Short term power")
             elif power_setting == GUID_BATTERY_PERCENTAGE_REMAINING:
-                print('battery remaining: %s' % data)
+                print("battery remaining: %s" % data)
             elif power_setting == GUID_MONITOR_POWER_ON:
-                if data == 0: print('Monitor off')
-                if data == 1: print('Monitor on')
+                if data == 0:
+                    print("Monitor off")
+                    send_message_to_server("Monitor off")
+                if data == 1:
+                    print("Monitor on")
+                    send_message_to_server("Monitor on")
             elif power_setting == GUID_SYSTEM_AWAYMODE:
-                if data == 0: print('Exiting away mode')
-                if data == 1: print('Entering away mode')
+                if data == 0:
+                    print("Exiting away mode")
+                    send_message_to_server("Exiting away mode")
+                if data == 1:
+                    print("Entering away mode")
+                    send_message_to_server("Entering away mode")
             else:
-                print('unknown GUID')
+                print("unknown GUID")
         return True
 
     return False
@@ -125,20 +144,20 @@ class WindowsPowerManagement:
             print("hwnd: %s" % hwnd)
 
         guids_info = {
-            # 'GUID_MONITOR_POWER_ON': GUID_MONITOR_POWER_ON,
-            'GUID_SYSTEM_AWAYMODE': GUID_SYSTEM_AWAYMODE,
-            # 'GUID_CONSOLE_DISPLAY_STATE': GUID_CONSOLE_DISPLAY_STATE,
-            # 'GUID_ACDC_POWER_SOURCE': GUID_ACDC_POWER_SOURCE,
-            # 'GUID_BATTERY_PERCENTAGE_REMAINING': GUID_BATTERY_PERCENTAGE_REMAINING
+            "GUID_MONITOR_POWER_ON": GUID_MONITOR_POWER_ON,
+            "GUID_SYSTEM_AWAYMODE": GUID_SYSTEM_AWAYMODE,
+            "GUID_CONSOLE_DISPLAY_STATE": GUID_CONSOLE_DISPLAY_STATE,
+            # "GUID_ACDC_POWER_SOURCE": GUID_ACDC_POWER_SOURCE,
+            # "GUID_BATTERY_PERCENTAGE_REMAINING": GUID_BATTERY_PERCENTAGE_REMAINING
         }
         for name, guid_info in guids_info.items():
             result = windll.user32.RegisterPowerSettingNotification(HANDLE(hwnd), GUID(guid_info), DWORD(0))
-            print('registering', name)
-            print('result:', hex(result))
-            print('lastError:', win32api.GetLastError())
+            print("registering", name)
+            print("result:", hex(result))
+            print("lastError:", win32api.GetLastError())
             print()
 
-        print('\nEntering loop')
+        print("\nEntering loop")
         while True:
             win32gui.PumpWaitingMessages()
             # Testing
@@ -159,7 +178,7 @@ class WindowsPowerManagement:
             print("Update available, installing requirements...", end="")
             subprocess.check_output(
                 [sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"],
-                stderr=subprocess.DEVNULL  # TODO: This isn't working, stderr is still showing
+                stderr=subprocess.DEVNULL
             )
             print(" [Done]")
             print("Restarting process...")
@@ -171,10 +190,10 @@ class WindowsPowerManagement:
 
 
     # def prevent_standby(self):
-    #     if platform.system() == 'Windows':
+    #     if platform.system() == "Windows":
     #         self._set_thread_execution(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
     #
     #
     # def allow_standby(self):
-    #     if platform.system() == 'Windows':
+    #     if platform.system() == "Windows":
     #         self._set_thread_execution(ES_CONTINUOUS)

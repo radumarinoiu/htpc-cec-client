@@ -13,7 +13,7 @@ import time
 from ctypes import POINTER, windll, Structure, cast, CFUNCTYPE, c_int, c_uint, c_void_p, c_bool
 from comtypes import GUID
 from ctypes.wintypes import HANDLE, DWORD
-from constants import EventTypes, EventTargets
+from constants import EventTypes, EventTargets, EVENT_TYPE_KEY, EVENT_TARGET_KEY, EVENT_VALUE_KEY
 from requests import HTTPError
 
 ES_CONTINUOUS = 0x80000000
@@ -61,9 +61,9 @@ power_settings_dict = {
 def wndproc(hwnd, msg, wparam, lparam):
     if msg == win32con.WM_POWERBROADCAST:
         request_payload = {
-            "event_type": wparam_dict.get(wparam, "N/A"),
-            "event_target": "N/A",
-            "event_value": "N/A",
+            EVENT_TYPE_KEY: wparam_dict.get(wparam, "N/A"),
+            EVENT_TARGET_KEY: "N/A",
+            EVENT_VALUE_KEY: "N/A",
         }
         if wparam == win32con.PBT_APMPOWERSTATUSCHANGE:
             print("Power status has changed")
@@ -79,9 +79,9 @@ def wndproc(hwnd, msg, wparam, lparam):
             power_setting = str(settings.PowerSetting)
             data_length = settings.DataLength
             data = settings.Data
-            request_payload["event_target"] = power_settings_dict.get(power_setting, "N/A")
+            request_payload[EVENT_TARGET_KEY] = power_settings_dict.get(power_setting, "N/A")
             try:
-                request_payload["event_value"] = int(data)
+                request_payload[EVENT_VALUE_KEY] = int(data)
             except ValueError:
                 pass  # Do nothing, value will be N/A if it's not an int
             if power_setting == GUID_CONSOLE_DISPLAY_STATE:

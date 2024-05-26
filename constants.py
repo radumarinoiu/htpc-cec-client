@@ -1,6 +1,11 @@
 from enum import Enum
 
 
+EVENT_TYPE_KEY = "event_type"
+EVENT_TARGET_KEY = "event_target"
+EVENT_VALUE_KEY = "event_value"
+
+
 class EventTypes(Enum):
     POWER_STATUS_CHANGE = "power_status"
     POWER_RESUME_AUTOMATIC = "system_resume_automatic"

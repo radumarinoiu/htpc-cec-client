@@ -33,7 +33,7 @@ SERVER_ADDRESS = "http://192.168.0.6:5000"
 
 def send_message_to_server(message):
     try:
-        resp = requests.post(f"{SERVER_ADDRESS}/send-message/", json={"message": message})
+        resp = requests.post(f"{SERVER_ADDRESS}/on-client-message/", json={"message": message})
     except ConnectionError:
         print(f"Failed establishing connection to server. Cannot send message. Exception:\n{traceback.format_exc()}")
         return

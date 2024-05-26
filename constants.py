@@ -10,6 +10,6 @@ class EventTypes(Enum):
 
 
 class EventTargets(Enum):
-    DISPLAY_STATE: "display_state"
-    MONITOR_STATE: "monitor_state"
-    AWAY_STATE: "away_state"
+    DISPLAY_STATE = "display_state"
+    MONITOR_STATE = "monitor_state"
+    AWAY_STATE = "away_state"

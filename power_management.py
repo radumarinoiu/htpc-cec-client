@@ -1,5 +1,8 @@
 import ctypes
+import os
 import platform
+import subprocess
+import sys
 import traceback
 
 import requests
@@ -86,6 +89,9 @@ class POWERBROADCAST_SETTING(Structure):
 
 
 class WindowsPowerManagement:
+    def __init__(self):
+        self._last_update_check = time.monotonic()
+
     def listen(self):
 
         print("*** STARTING ***")
@@ -135,18 +141,31 @@ class WindowsPowerManagement:
         print('\nEntering loop')
         while True:
             win32gui.PumpWaitingMessages()
+            self.check_for_updates()
             time.sleep(1)
 
+    def check_for_updates(self):
+        if time.monotonic() - self._last_update_check < 30:
+            return
+
+        subprocess.check_output(["git", "fetch"])
+        # subprocess.check_output(["git", "reset", "--hard"])
+        # subprocess.check_output(["git", "checkout", "master"])
+        output = subprocess.check_output(["git", "pull"])
+        if output.startswith(b"Updating "):
+            print("Update was pulled, restarting")
+            os.execl(sys.executable, sys.executable, *sys.argv)
+        self._last_update_check = time.monotonic()
 
     def _set_thread_execution(self, state):
         ctypes.windll.kernel32.SetThreadExecutionState(state)
 
 
-    def prevent_standby(self):
-        if platform.system() == 'Windows':
-            self._set_thread_execution(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
-
-
-    def allow_standby(self):
-        if platform.system() == 'Windows':
-            self._set_thread_execution(ES_CONTINUOUS)
+    # def prevent_standby(self):
+    #     if platform.system() == 'Windows':
+    #         self._set_thread_execution(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+    #
+    #
+    # def allow_standby(self):
+    #     if platform.system() == 'Windows':
+    #         self._set_thread_execution(ES_CONTINUOUS)

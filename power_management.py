@@ -150,14 +150,17 @@ class WindowsPowerManagement:
             return
 
         print("Checking for updates...", end="")
-        subprocess.check_output(["git", "fetch"])
+        subprocess.check_output(["git", "fetch"], stderr=subprocess.DEVNULL)
         # subprocess.check_output(["git", "reset", "--hard"])
         # subprocess.check_output(["git", "checkout", "master"])
-        output = subprocess.check_output(["git", "pull"])
+        output = subprocess.check_output(["git", "pull"], stderr=subprocess.DEVNULL)
         print(" [Done]")
         if output.startswith(b"Updating "):
             print("Update available, installing requirements...", end="")
-            subprocess.check_output([sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"])
+            subprocess.check_output(
+                [sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"],
+                stderr=subprocess.DEVNULL
+            )
             print(" [Done]")
             print("Restarting process...")
             os.execl(sys.executable, sys.executable, *sys.argv)

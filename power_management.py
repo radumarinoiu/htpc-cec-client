@@ -141,6 +141,7 @@ class WindowsPowerManagement:
         print('\nEntering loop')
         while True:
             win32gui.PumpWaitingMessages()
+            # Testing
             self.check_for_updates()
             time.sleep(1)
 

@@ -48,7 +48,7 @@ wparam_dict = {
     win32con.PBT_APMRESUMEAUTOMATIC: EventTypes.POWER_RESUME_AUTOMATIC.value,
     win32con.PBT_APMRESUMESUSPEND: EventTypes.POWER_RESUME_MANUALLY.value,
     win32con.PBT_APMSUSPEND: EventTypes.POWER_SUSPEND.value,
-    win32con.PBT_POWERSETTINGCHANGE: EventTypes.POWER_OTHER_EVENT.value,
+    PBT_POWERSETTINGCHANGE: EventTypes.POWER_OTHER_EVENT.value,
 }
 
 power_settings_dict = {

@@ -159,7 +159,7 @@ class WindowsPowerManagement:
             print("Update available, installing requirements...", end="")
             subprocess.check_output(
                 [sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"],
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.DEVNULL  # TODO: This isn't working, stderr is still showing
             )
             print(" [Done]")
             print("Restarting process...")

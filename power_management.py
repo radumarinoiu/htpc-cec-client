@@ -13,7 +13,7 @@ import time
 from ctypes import POINTER, windll, Structure, cast, CFUNCTYPE, c_int, c_uint, c_void_p, c_bool
 from comtypes import GUID
 from ctypes.wintypes import HANDLE, DWORD
-
+from constants import EventTypes, EventTargets
 from requests import HTTPError
 
 ES_CONTINUOUS = 0x80000000
@@ -43,32 +43,52 @@ def send_message_to_server(message):
         print(f"Request failed: [{resp.status_code}] {resp.content}")
 
 
+wparam_dict = {
+    win32con.PBT_APMPOWERSTATUSCHANGE: EventTypes.POWER_STATUS_CHANGE.value,
+    win32con.PBT_APMRESUMEAUTOMATIC: EventTypes.POWER_RESUME_AUTOMATIC.value,
+    win32con.PBT_APMRESUMESUSPEND: EventTypes.POWER_RESUME_MANUALLY.value,
+    win32con.PBT_APMSUSPEND: EventTypes.POWER_SUSPEND.value,
+    win32con.PBT_POWERSETTINGCHANGE: EventTypes.POWER_OTHER_EVENT.value,
+}
+
+power_settings_dict = {
+    GUID_CONSOLE_DISPLAY_STATE: EventTargets.DISPLAY_STATE.value,
+    GUID_MONITOR_POWER_ON: EventTargets.MONITOR_STATE.value,
+    GUID_SYSTEM_AWAYMODE: EventTargets.AWAY_STATE.value,
+}
+
+
 def wndproc(hwnd, msg, wparam, lparam):
     if msg == win32con.WM_POWERBROADCAST:
+        request_payload = {
+            "event_type": wparam_dict.get(wparam, "N/A"),
+            "event_target": "N/A",
+            "event_value": "N/A",
+        }
         if wparam == win32con.PBT_APMPOWERSTATUSCHANGE:
             print("Power status has changed")
         if wparam == win32con.PBT_APMRESUMEAUTOMATIC:
             print("System resume")
-            send_message_to_server("Wake from sleep (automatic)")
         if wparam == win32con.PBT_APMRESUMESUSPEND:
             print("System resume by user input")
-            send_message_to_server("Wake from sleep (user-triggered)")
         if wparam == win32con.PBT_APMSUSPEND:
             print("System suspend")
-            send_message_to_server("Go to sleep")
         if wparam == PBT_POWERSETTINGCHANGE:
             print("Power setting changed...")
             settings = cast(lparam, POINTER(POWERBROADCAST_SETTING)).contents
             power_setting = str(settings.PowerSetting)
             data_length = settings.DataLength
             data = settings.Data
+            request_payload["event_target"] = power_settings_dict.get(power_setting, "N/A")
+            try:
+                request_payload["event_value"] = int(data)
+            except ValueError:
+                pass  # Do nothing, value will be N/A if it's not an int
             if power_setting == GUID_CONSOLE_DISPLAY_STATE:
                 if data == 0:
                     print("Display off")
-                    send_message_to_server("Display off")
                 if data == 1:
                     print("Display on")
-                    send_message_to_server("Display on")
                 if data == 2:
                     print("Display dimmed")
             elif power_setting == GUID_ACDC_POWER_SOURCE:
@@ -83,19 +103,17 @@ def wndproc(hwnd, msg, wparam, lparam):
             elif power_setting == GUID_MONITOR_POWER_ON:
                 if data == 0:
                     print("Monitor off")
-                    send_message_to_server("Monitor off")
                 if data == 1:
                     print("Monitor on")
-                    send_message_to_server("Monitor on")
             elif power_setting == GUID_SYSTEM_AWAYMODE:
                 if data == 0:
                     print("Exiting away mode")
-                    send_message_to_server("Exiting away mode")
                 if data == 1:
                     print("Entering away mode")
-                    send_message_to_server("Entering away mode")
             else:
                 print("unknown GUID")
+
+        send_message_to_server(request_payload)
         return True
 
     return False

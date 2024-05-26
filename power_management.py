@@ -148,12 +148,17 @@ class WindowsPowerManagement:
         if time.monotonic() - self._last_update_check < 30:
             return
 
+        print("Checking for updates...", end="")
         subprocess.check_output(["git", "fetch"])
         # subprocess.check_output(["git", "reset", "--hard"])
         # subprocess.check_output(["git", "checkout", "master"])
         output = subprocess.check_output(["git", "pull"])
+        print(" [Done]")
         if output.startswith(b"Updating "):
-            print("Update was pulled, restarting")
+            print("Update available, installing requirements...", end="")
+            subprocess.check_output([sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"])
+            print(" [Done]")
+            print("Restarting process...")
             os.execl(sys.executable, sys.executable, *sys.argv)
         self._last_update_check = time.monotonic()
 

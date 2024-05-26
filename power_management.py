@@ -1,5 +1,8 @@
 import ctypes
 import platform
+import traceback
+
+import requests
 import win32con
 import win32api
 import win32gui
@@ -8,6 +11,7 @@ from ctypes import POINTER, windll, Structure, cast, CFUNCTYPE, c_int, c_uint, c
 from comtypes import GUID
 from ctypes.wintypes import HANDLE, DWORD
 
+from requests import HTTPError
 
 ES_CONTINUOUS = 0x80000000
 ES_SYSTEM_REQUIRED = 0x00000001
@@ -19,6 +23,21 @@ GUID_ACDC_POWER_SOURCE = '{5D3E9A59-E9D5-4B00-A6BD-FF34FF516548}'
 GUID_BATTERY_PERCENTAGE_REMAINING = '{A7AD8041-B45A-4CAE-87A3-EECBB468A9E1}'
 GUID_MONITOR_POWER_ON = '{02731015-4510-4526-99E6-E5A17EBD1AEA}'
 GUID_SYSTEM_AWAYMODE = '{98A7F580-01F7-48AA-9C0F-44352C29E5C0}'
+
+
+SERVER_ADDRESS = "http://192.168.0.6:5000"
+
+
+def send_message_to_server(message):
+    try:
+        resp = requests.post(f"{SERVER_ADDRESS}/send-message", json={"message": message})
+    except ConnectionError:
+        print(f"Failed establishing connection to server. Cannot send message. Exception:\n{traceback.format_exc()}")
+        return
+    try:
+        resp.raise_for_status()
+    except HTTPError:
+        print(f"Request failed: [{resp.status_code}] {resp.content}")
 
 
 def wndproc(hwnd, msg, wparam, lparam):

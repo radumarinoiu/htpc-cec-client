@@ -14,7 +14,7 @@ from comtypes import GUID
 from ctypes.wintypes import HANDLE, DWORD
 from constants import EventTypes, EventTargets, EVENT_TYPE_KEY, EVENT_TARGET_KEY, EVENT_VALUE_KEY, SERVER_ADDRESS, \
     PBT_POWERSETTINGCHANGE, GUID_CONSOLE_DISPLAY_STATE, GUID_MONITOR_POWER_ON, GUID_SYSTEM_AWAYMODE, \
-    GUID_ACDC_POWER_SOURCE, GUID_BATTERY_PERCENTAGE_REMAINING
+    GUID_ACDC_POWER_SOURCE, GUID_BATTERY_PERCENTAGE_REMAINING, ES_SYSTEM_REQUIRED, ES_CONTINUOUS
 from requests import HTTPError
 
 
@@ -103,6 +103,14 @@ def wndproc(hwnd, msg, wparam, lparam):
                 logger.debug("unknown GUID")
 
         _send_event(request_payload)
+
+        if wparam == win32con.PBT_APMRESUMEAUTOMATIC:
+            WindowsPowerManagement.disable_sleep()
+        if wparam == win32con.PBT_APMRESUMESUSPEND:
+            WindowsPowerManagement.disable_sleep()
+        if wparam == win32con.PBT_APMSUSPEND:
+            WindowsPowerManagement.enable_sleep()
+
         return True
 
     return False
@@ -210,3 +218,11 @@ class WindowsPowerManagement:
     @classmethod
     def _set_thread_execution(cls, state):
         ctypes.windll.kernel32.SetThreadExecutionState(state)
+
+    @classmethod
+    def disable_sleep(cls):
+        cls._set_thread_execution(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+
+    @classmethod
+    def enable_sleep(cls):
+        cls._set_thread_execution(ES_CONTINUOUS)

@@ -13,6 +13,7 @@ if __name__ == '__main__':
     logger.addHandler(RemoteHandler())
     while True:
         try:
+            WindowsPowerManagement.disable_sleep()
             WindowsPowerManagement().listen()
         except Exception:
             logger.exception("Critical error occurred, checking for updates, maybe it was fixed...")
@@ -22,3 +23,5 @@ if __name__ == '__main__':
                 logger.exception("Critical error occurred while checking for updates, exiting...")
                 exit(1)
             time.sleep(30)
+        finally:
+            WindowsPowerManagement.enable_sleep()

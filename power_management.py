@@ -124,7 +124,7 @@ class WindowsPowerManagement:
             os.remove("updated")
         else:
             _send_event({
-                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
+                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE.value,
                 EVENT_TARGET_KEY: "started",
                 EVENT_VALUE_KEY: 1,
             })
@@ -189,7 +189,7 @@ class WindowsPowerManagement:
         if output.startswith(b"Updating "):
             logger.debug("Update available, installing requirements...")
             _send_event({
-                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
+                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE.value,
                 EVENT_TARGET_KEY: "update_available",
                 EVENT_VALUE_KEY: 1,
             })
@@ -199,7 +199,7 @@ class WindowsPowerManagement:
             )
             logger.debug("Requirements installed")
             _send_event({
-                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
+                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE.value,
                 EVENT_TARGET_KEY: "update_installed",
                 EVENT_VALUE_KEY: 1,
             })

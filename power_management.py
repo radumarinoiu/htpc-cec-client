@@ -122,6 +122,11 @@ class WindowsPowerManagement:
         logger.debug("*** STARTING ***")
         if os.path.exists("updated"):
             os.remove("updated")
+            _send_event({
+                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE.value,
+                EVENT_TARGET_KEY: "update_restarted",
+                EVENT_VALUE_KEY: 1,
+            })
         else:
             _send_event({
                 EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE.value,

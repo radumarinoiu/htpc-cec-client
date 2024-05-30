@@ -1,9 +1,8 @@
 import ctypes
+import logging
 import os
-import platform
 import subprocess
 import sys
-import traceback
 
 import requests
 import win32con
@@ -13,34 +12,10 @@ import time
 from ctypes import POINTER, windll, Structure, cast, CFUNCTYPE, c_int, c_uint, c_void_p, c_bool
 from comtypes import GUID
 from ctypes.wintypes import HANDLE, DWORD
-from constants import EventTypes, EventTargets, EVENT_TYPE_KEY, EVENT_TARGET_KEY, EVENT_VALUE_KEY
+from constants import EventTypes, EventTargets, EVENT_TYPE_KEY, EVENT_TARGET_KEY, EVENT_VALUE_KEY, SERVER_ADDRESS, \
+    PBT_POWERSETTINGCHANGE, GUID_CONSOLE_DISPLAY_STATE, GUID_MONITOR_POWER_ON, GUID_SYSTEM_AWAYMODE, \
+    GUID_ACDC_POWER_SOURCE, GUID_BATTERY_PERCENTAGE_REMAINING
 from requests import HTTPError
-
-ES_CONTINUOUS = 0x80000000
-ES_SYSTEM_REQUIRED = 0x00000001
-
-
-PBT_POWERSETTINGCHANGE = 0x8013
-GUID_CONSOLE_DISPLAY_STATE = "{6FE69556-704A-47A0-8F24-C28D936FDA47}"
-GUID_ACDC_POWER_SOURCE = "{5D3E9A59-E9D5-4B00-A6BD-FF34FF516548}"
-GUID_BATTERY_PERCENTAGE_REMAINING = "{A7AD8041-B45A-4CAE-87A3-EECBB468A9E1}"
-GUID_MONITOR_POWER_ON = "{02731015-4510-4526-99E6-E5A17EBD1AEA}"
-GUID_SYSTEM_AWAYMODE = "{98A7F580-01F7-48AA-9C0F-44352C29E5C0}"
-
-
-SERVER_ADDRESS = "http://192.168.0.6:5000"
-
-
-def send_message_to_server(message):
-    try:
-        resp = requests.post(f"{SERVER_ADDRESS}/on-client-message/", json={"message": message})
-    except ConnectionError:
-        print(f"Failed establishing connection to server. Cannot send message. Exception:\n{traceback.format_exc()}")
-        return
-    try:
-        resp.raise_for_status()
-    except HTTPError:
-        print(f"Request failed: [{resp.status_code}] {resp.content}")
 
 
 wparam_dict = {
@@ -58,6 +33,21 @@ power_settings_dict = {
 }
 
 
+logger = logging.getLogger()
+
+
+def _send_event(event):
+    try:
+        resp = requests.post(f"{SERVER_ADDRESS}/on-client-message/", json={"message": event})
+    except ConnectionError:
+        logger.exception("Failed establishing connection to server. Cannot send message.")
+        return
+    try:
+        resp.raise_for_status()
+    except HTTPError:
+        logger.exception(f"Request failed: [{resp.status_code}] {resp.content}")
+
+
 def wndproc(hwnd, msg, wparam, lparam):
     if msg == win32con.WM_POWERBROADCAST:
         request_payload = {
@@ -66,18 +56,17 @@ def wndproc(hwnd, msg, wparam, lparam):
             EVENT_VALUE_KEY: "N/A",
         }
         if wparam == win32con.PBT_APMPOWERSTATUSCHANGE:
-            print("Power status has changed")
+            logger.debug("Power status has changed")
         if wparam == win32con.PBT_APMRESUMEAUTOMATIC:
-            print("System resume")
+            logger.debug("System resume")
         if wparam == win32con.PBT_APMRESUMESUSPEND:
-            print("System resume by user input")
+            logger.debug("System resume by user input")
         if wparam == win32con.PBT_APMSUSPEND:
-            print("System suspend")
+            logger.debug("System suspend")
         if wparam == PBT_POWERSETTINGCHANGE:
-            print("Power setting changed...")
-            settings = cast(lparam, POINTER(POWERBROADCAST_SETTING)).contents
+            logger.debug("Power setting changed...")
+            settings = cast(lparam, POINTER(PowerBroadcastSetting)).contents
             power_setting = str(settings.PowerSetting)
-            data_length = settings.DataLength
             data = settings.Data
             request_payload[EVENT_TARGET_KEY] = power_settings_dict.get(power_setting, "N/A")
             try:
@@ -86,40 +75,40 @@ def wndproc(hwnd, msg, wparam, lparam):
                 pass  # Do nothing, value will be N/A if it's not an int
             if power_setting == GUID_CONSOLE_DISPLAY_STATE:
                 if data == 0:
-                    print("Display off")
+                    logger.debug("Display off")
                 if data == 1:
-                    print("Display on")
+                    logger.debug("Display on")
                 if data == 2:
-                    print("Display dimmed")
+                    logger.debug("Display dimmed")
             elif power_setting == GUID_ACDC_POWER_SOURCE:
                 if data == 0:
-                    print("AC power")
+                    logger.debug("AC power")
                 if data == 1:
-                    print("Battery power")
+                    logger.debug("Battery power")
                 if data == 2:
-                    print("Short term power")
+                    logger.debug("Short term power")
             elif power_setting == GUID_BATTERY_PERCENTAGE_REMAINING:
-                print("battery remaining: %s" % data)
+                logger.debug("battery remaining: %s" % data)
             elif power_setting == GUID_MONITOR_POWER_ON:
                 if data == 0:
-                    print("Monitor off")
+                    logger.debug("Monitor off")
                 if data == 1:
-                    print("Monitor on")
+                    logger.debug("Monitor on")
             elif power_setting == GUID_SYSTEM_AWAYMODE:
                 if data == 0:
-                    print("Exiting away mode")
+                    logger.debug("Exiting away mode")
                 if data == 1:
-                    print("Entering away mode")
+                    logger.debug("Entering away mode")
             else:
-                print("unknown GUID")
+                logger.debug("unknown GUID")
 
-        send_message_to_server(request_payload)
+        _send_event(request_payload)
         return True
 
     return False
 
 
-class POWERBROADCAST_SETTING(Structure):
+class PowerBroadcastSetting(Structure):
     _fields_ = [("PowerSetting", GUID),
                 ("DataLength", DWORD),
                 ("Data", DWORD)]
@@ -130,11 +119,11 @@ class WindowsPowerManagement:
         self._last_update_check = time.monotonic()
 
     def listen(self):
-        print("*** STARTING ***")
+        logger.debug("*** STARTING ***")
         if os.path.exists("updated"):
             os.remove("updated")
         else:
-            send_message_to_server({
+            _send_event({
                 EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
                 EVENT_TARGET_KEY: "started",
                 EVENT_VALUE_KEY: 1,
@@ -143,13 +132,13 @@ class WindowsPowerManagement:
         wndclass = win32gui.WNDCLASS()
         wndclass.hInstance = hinst
         wndclass.lpszClassName = "testWindowClass"
-        CMPFUNC = CFUNCTYPE(c_bool, c_int, c_uint, c_uint, c_void_p)
-        wndproc_pointer = CMPFUNC(wndproc)
+        cmp_func = CFUNCTYPE(c_bool, c_int, c_uint, c_uint, c_void_p)
+        wndproc_pointer = cmp_func(wndproc)
         wndclass.lpfnWndProc = {win32con.WM_POWERBROADCAST: wndproc_pointer}
         try:
-            myWindowClass = win32gui.RegisterClass(wndclass)
+            my_window_class = win32gui.RegisterClass(wndclass)
             hwnd = win32gui.CreateWindowEx(win32con.WS_EX_LEFT,
-                                           myWindowClass,
+                                           my_window_class,
                                            "testMsgWindow",
                                            0,
                                            0,
@@ -161,12 +150,13 @@ class WindowsPowerManagement:
                                            hinst,
                                            None)
         except Exception as e:
-            print("Exception: %s" % str(e))
+            logger.exception("Exception occurred while creating Capturing Window")
+            raise
 
         if hwnd is None:
-            print("hwnd is none!")
+            logger.debug("hwnd is none!")
         else:
-            print("hwnd: %s" % hwnd)
+            logger.debug(f"hwnd: {hwnd}")
 
         guids_info = {
             "GUID_MONITOR_POWER_ON": GUID_MONITOR_POWER_ON,
@@ -177,12 +167,11 @@ class WindowsPowerManagement:
         }
         for name, guid_info in guids_info.items():
             result = windll.user32.RegisterPowerSettingNotification(HANDLE(hwnd), GUID(guid_info), DWORD(0))
-            print("registering", name)
-            print("result:", hex(result))
-            print("lastError:", win32api.GetLastError())
-            print()
+            logger.debug(f"registering: {name}")
+            logger.debug(f"result: {hex(result)}")
+            logger.debug(f"lastError: {win32api.GetLastError()}")
 
-        print("\nEntering loop")
+        logger.debug("Entering loop")
         while True:
             win32gui.PumpWaitingMessages()
             # Testing
@@ -193,15 +182,13 @@ class WindowsPowerManagement:
         if time.monotonic() - self._last_update_check < 30:
             return
 
-        print("Checking for updates...", end="")
+        logger.debug("Checking for updates...")
         subprocess.check_output(["git", "fetch"], stderr=subprocess.DEVNULL)
-        # subprocess.check_output(["git", "reset", "--hard"])
-        # subprocess.check_output(["git", "checkout", "master"])
         output = subprocess.check_output(["git", "pull"], stderr=subprocess.DEVNULL)
-        print(" [Done]")
+        logger.debug("Finished checking for updates")
         if output.startswith(b"Updating "):
-            print("Update available, installing requirements...", end="")
-            send_message_to_server({
+            logger.debug("Update available, installing requirements...")
+            _send_event({
                 EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
                 EVENT_TARGET_KEY: "update_available",
                 EVENT_VALUE_KEY: 1,
@@ -210,27 +197,18 @@ class WindowsPowerManagement:
                 [sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"],
                 stderr=subprocess.DEVNULL
             )
-            print(" [Done]")
-            send_message_to_server({
+            logger.debug("Requirements installed")
+            _send_event({
                 EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
                 EVENT_TARGET_KEY: "update_installed",
                 EVENT_VALUE_KEY: 1,
             })
             with open("updated", "w") as fd:
                 fd.write("1")
-            print("Restarting process...")
+            logger.debug("Restarting process...")
             os.execl(sys.executable, sys.executable, *sys.argv)
         self._last_update_check = time.monotonic()
 
-    def _set_thread_execution(self, state):
+    @classmethod
+    def _set_thread_execution(cls, state):
         ctypes.windll.kernel32.SetThreadExecutionState(state)
-
-
-    # def prevent_standby(self):
-    #     if platform.system() == "Windows":
-    #         self._set_thread_execution(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
-    #
-    #
-    # def allow_standby(self):
-    #     if platform.system() == "Windows":
-    #         self._set_thread_execution(ES_CONTINUOUS)

@@ -188,21 +188,27 @@ class WindowsPowerManagement:
         logger.debug("Finished checking for updates")
         if output.startswith(b"Updating "):
             logger.debug("Update available, installing requirements...")
-            _send_event({
-                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
-                EVENT_TARGET_KEY: "update_available",
-                EVENT_VALUE_KEY: 1,
-            })
+            try:
+                _send_event({
+                    EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
+                    EVENT_TARGET_KEY: "update_available",
+                    EVENT_VALUE_KEY: 1,
+                })
+            except Exception:
+                logger.exception("Exception occurred while trying to send events during update. Ignoring errors here")
             subprocess.check_output(
                 [sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"],
                 stderr=subprocess.DEVNULL
             )
             logger.debug("Requirements installed")
-            _send_event({
-                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
-                EVENT_TARGET_KEY: "update_installed",
-                EVENT_VALUE_KEY: 1,
-            })
+            try:
+                _send_event({
+                    EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
+                    EVENT_TARGET_KEY: "update_installed",
+                    EVENT_VALUE_KEY: 1,
+                })
+            except Exception:
+                logger.exception("Exception occurred while trying to send events during update. Ignoring errors here")
             with open("updated", "w") as fd:
                 fd.write("1")
             logger.debug("Restarting process...")

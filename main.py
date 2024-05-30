@@ -10,4 +10,7 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
     logger.addHandler(logging.FileHandler("client.log"))
     logger.addHandler(RemoteHandler())
-    WindowsPowerManagement().listen()
+    try:
+        WindowsPowerManagement().listen()
+    except Exception:
+        logger.exception("Critical error occurred, exiting...")

@@ -178,8 +178,8 @@ class WindowsPowerManagement:
             self.check_for_updates()
             time.sleep(1)
 
-    def check_for_updates(self):
-        if time.monotonic() - self._last_update_check < 30:
+    def check_for_updates(self, force=False):
+        if not force and time.monotonic() - self._last_update_check < 30:
             return
 
         logger.debug("Checking for updates...")

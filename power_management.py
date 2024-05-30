@@ -53,7 +53,7 @@ def wndproc(hwnd, msg, wparam, lparam):
         request_payload = {
             EVENT_TYPE_KEY: wparam_dict.get(wparam, "N/A"),
             EVENT_TARGET_KEY: "N/A",
-            EVENT_VALUE_KEY: "N/A",
+            EVENT_VALUE_KEY: 1,
         }
         if wparam == win32con.PBT_APMPOWERSTATUSCHANGE:
             logger.debug("Power status has changed")

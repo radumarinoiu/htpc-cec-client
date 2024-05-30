@@ -2,7 +2,7 @@ import logging
 import requests
 from requests import HTTPError
 
-from .constants import SERVER_ADDRESS
+from constants import SERVER_ADDRESS
 
 
 logger = logging.getLogger()

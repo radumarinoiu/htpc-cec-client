@@ -1,4 +1,5 @@
 import logging
+import time
 
 from htpc_cec_client.remote_logger import RemoteHandler
 from power_management import WindowsPowerManagement
@@ -10,7 +11,14 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
     logger.addHandler(logging.FileHandler("client.log"))
     logger.addHandler(RemoteHandler())
-    try:
-        WindowsPowerManagement().listen()
-    except Exception:
-        logger.exception("Critical error occurred, exiting...")
+    while True:
+        try:
+            WindowsPowerManagement().listen()
+        except Exception:
+            logger.exception("Critical error occurred, checking for updates, maybe it was fixed...")
+            try:
+                WindowsPowerManagement().check_for_updates()
+            except Exception:
+                logger.exception("Critical error occurred while checking for updates, exiting...")
+                exit(1)
+            time.sleep(30)

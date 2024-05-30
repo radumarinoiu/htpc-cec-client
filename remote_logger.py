@@ -14,12 +14,12 @@ class RemoteHandler(logging.Handler):
         try:
             resp = requests.post(f"{SERVER_ADDRESS}/on-log-emitted/", json={"message": message})
         except ConnectionError:
-            logger.exception("Failed establishing connection to server. Cannot send message.")
+            print("Failed establishing connection to server. Cannot send message.")
             return
         try:
             resp.raise_for_status()
         except HTTPError:
-            logger.error(f"Request failed: [{resp.status_code}] {resp.content}")
+            print(f"Request failed: [{resp.status_code}] {resp.content}")
 
     def emit(self, record: logging.LogRecord) -> None:
         """

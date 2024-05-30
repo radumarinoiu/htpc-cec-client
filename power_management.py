@@ -130,8 +130,15 @@ class WindowsPowerManagement:
         self._last_update_check = time.monotonic()
 
     def listen(self):
-
         print("*** STARTING ***")
+        if os.path.exists("updated"):
+            os.remove("updated")
+        else:
+            send_message_to_server({
+                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
+                EVENT_TARGET_KEY: "started",
+                EVENT_VALUE_KEY: 1,
+            })
         hinst = win32api.GetModuleHandle(None)
         wndclass = win32gui.WNDCLASS()
         wndclass.hInstance = hinst
@@ -194,11 +201,23 @@ class WindowsPowerManagement:
         print(" [Done]")
         if output.startswith(b"Updating "):
             print("Update available, installing requirements...", end="")
+            send_message_to_server({
+                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
+                EVENT_TARGET_KEY: "update_available",
+                EVENT_VALUE_KEY: 1,
+            })
             subprocess.check_output(
                 [sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"],
                 stderr=subprocess.DEVNULL
             )
             print(" [Done]")
+            send_message_to_server({
+                EVENT_TYPE_KEY: EventTypes.CLIENT_STATUS_CHANGE,
+                EVENT_TARGET_KEY: "update_installed",
+                EVENT_VALUE_KEY: 1,
+            })
+            with open("updated", "w") as fd:
+                fd.write("1")
             print("Restarting process...")
             os.execl(sys.executable, sys.executable, *sys.argv)
         self._last_update_check = time.monotonic()

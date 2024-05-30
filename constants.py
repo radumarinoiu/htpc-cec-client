@@ -7,6 +7,7 @@ EVENT_VALUE_KEY = "event_value"
 
 
 class EventTypes(Enum):
+    CLIENT_STATUS_CHANGE = "client_status"
     POWER_STATUS_CHANGE = "power_status"
     POWER_RESUME_AUTOMATIC = "system_resume_automatic"
     POWER_RESUME_MANUALLY = "system_resume_manual"

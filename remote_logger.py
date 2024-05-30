@@ -12,7 +12,7 @@ class RemoteHandler(logging.Handler):
     def __init__(self):
         logging.getLogger("urllib3").propagate = False
         super().__init__()
-
+    
     @classmethod
     def _send_request(cls, message):
         try:

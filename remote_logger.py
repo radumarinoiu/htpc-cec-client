@@ -2,7 +2,7 @@ import logging
 import requests
 from requests import HTTPError
 
-from htpc_cec_client.constants import SERVER_ADDRESS
+from .constants import SERVER_ADDRESS
 
 
 logger = logging.getLogger()

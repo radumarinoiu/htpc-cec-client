@@ -1,7 +1,7 @@
 import logging
 import time
 
-from htpc_cec_client.remote_logger import RemoteHandler
+from .remote_logger import RemoteHandler
 from power_management import WindowsPowerManagement
 
 

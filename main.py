@@ -17,7 +17,7 @@ if __name__ == '__main__':
         except Exception:
             logger.exception("Critical error occurred, checking for updates, maybe it was fixed...")
             try:
-                WindowsPowerManagement().check_for_updates()
+                WindowsPowerManagement().check_for_updates(force=True)
             except Exception:
                 logger.exception("Critical error occurred while checking for updates, exiting...")
                 exit(1)
